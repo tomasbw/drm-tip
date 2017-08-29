@@ -13,10 +13,13 @@
 #include <linux/uuid.h>
 #include <linux/mei_cl_bus.h>
 #include <linux/mei_hdcp.h>
+#include <linux/component.h>
 #include <drm/drm_connector.h>
 #include <drm/i915_component.h>
 
 #include "mei_hdcp.h"
+
+static bool mei_hdcp_component_registered;
 
 /*
  * mei_initiate_hdcp2_session:
@@ -709,8 +712,7 @@ static int mei_close_hdcp_session(struct mei_cl_device *cldev,
 	return 0;
 }
 
-static __attribute__((unused))
-struct i915_hdcp_component_ops mei_hdcp_ops = {
+static struct i915_hdcp_component_ops mei_hdcp_ops = {
 	.owner					= THIS_MODULE,
 	.initiate_hdcp2_session			= mei_initiate_hdcp2_session,
 	.verify_receiver_cert_prepare_km	=
@@ -728,20 +730,78 @@ struct i915_hdcp_component_ops mei_hdcp_ops = {
 	.close_hdcp_session			= mei_close_hdcp_session,
 };
 
+static int mei_hdcp_component_bind(struct device *mei_kdev,
+				   struct device *i915_kdev, void *data)
+{
+	struct i915_component_master *comp = data;
+
+	dev_info(mei_kdev, "MEI HDCP comp bind\n");
+	WARN_ON(comp->hdcp_ops);
+
+	comp->hdcp_ops = &mei_hdcp_ops;
+	comp->i915_kdev = i915_kdev;
+	comp->mei_cldev = to_mei_cl_device(mei_kdev);
+
+	return 0;
+}
+
+static void mei_hdcp_component_unbind(struct device *mei_kdev,
+				      struct device *i915_kdev, void *data)
+{
+	struct i915_component_master *comp = data;
+
+	dev_info(mei_kdev, "MEI HDCP comp unbind\n");
+	comp->hdcp_ops = NULL;
+	comp->mei_cldev = NULL;
+}
+
+static const struct component_ops mei_hdcp_component_bind_ops = {
+	.bind	= mei_hdcp_component_bind,
+	.unbind	= mei_hdcp_component_unbind,
+};
+
+static void mei_hdcp_component_init(struct device *dev)
+{
+	int ret;
+
+	dev_err(dev, "MEI HDCP comp init\n");
+	ret = component_add(dev, &mei_hdcp_component_bind_ops);
+	if (ret < 0) {
+		dev_err(dev, "Failed to add MEI HDCP comp (%d)\n", ret);
+		return;
+	}
+
+	mei_hdcp_component_registered = true;
+}
+
+static void mei_hdcp_component_cleanup(struct device *dev)
+{
+	if (!mei_hdcp_component_registered)
+		return;
+
+	component_del(dev, &mei_hdcp_component_bind_ops);
+	mei_hdcp_component_registered = false;
+}
+
 static int mei_hdcp_probe(struct mei_cl_device *cldev,
 			  const struct mei_cl_device_id *id)
 {
 	int ret;
 
 	ret = mei_cldev_enable(cldev);
-	if (ret < 0)
+	if (ret < 0) {
 		dev_err(&cldev->dev, "mei_cldev_enable Failed. %d\n", ret);
+		return ret;
+	}
+	mei_hdcp_component_init(&cldev->dev);
 
-	return ret;
+	return 0;
 }
 
 static int mei_hdcp_remove(struct mei_cl_device *cldev)
 {
+	mei_hdcp_component_cleanup(&cldev->dev);
+
 	return mei_cldev_disable(cldev);
 }
 
