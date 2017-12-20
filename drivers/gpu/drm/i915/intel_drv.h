@@ -457,6 +457,11 @@ struct intel_hdcp {
 	 */
 	wait_queue_head_t cp_irq_queue;
 	atomic_t cp_irq_recved;
+
+	/* list of Revocated KSVs and their count from SRM blob Parsing */
+	unsigned int revocated_ksv_cnt;
+	u8 *revocated_ksv_list;
+	u32 srm_blob_id;
 };
 
 struct intel_connector {
