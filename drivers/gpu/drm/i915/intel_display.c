@@ -15798,6 +15798,8 @@ static void intel_hpd_poll_fini(struct drm_device *dev)
 			cancel_work_sync(&connector->modeset_retry_work);
 		if (connector->hdcp.shim) {
 			cancel_delayed_work_sync(&connector->hdcp.check_work);
+			cancel_delayed_work_sync(
+					&connector->hdcp.hdcp2_check_work);
 			cancel_work_sync(&connector->hdcp.prop_work);
 		}
 	}
