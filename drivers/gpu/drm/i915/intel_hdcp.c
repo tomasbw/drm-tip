@@ -1854,4 +1854,7 @@ void intel_hdcp_handle_cp_irq(struct intel_connector *connector)
 		intel_hdcp_check_link(connector);
 	else if (intel_hdcp2_in_use(connector))
 		intel_hdcp2_check_link(connector);
+
+	atomic_set(&connector->hdcp.cp_irq_recved, 1);
+	wake_up_all(&connector->hdcp.cp_irq_queue);
 }
