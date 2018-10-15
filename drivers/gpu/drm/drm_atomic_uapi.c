@@ -763,6 +763,8 @@ static int drm_atomic_connector_set_property(struct drm_connector *connector,
 						   fence_ptr);
 	} else if (property == connector->cp_content_type_property) {
 		state->cp_content_type = val;
+	} else if (property == connector->cp_srm_property) {
+		state->cp_srm_blob_id = val;
 	} else if (connector->funcs->atomic_set_property) {
 		return connector->funcs->atomic_set_property(connector,
 				state, property, val);
@@ -829,6 +831,8 @@ drm_atomic_connector_get_property(struct drm_connector *connector,
 		*val = 0;
 	} else if (property == connector->cp_content_type_property) {
 		*val = state->cp_content_type;
+	} else if (property == connector->cp_srm_property) {
+		*val = state->cp_srm_blob_id;
 	} else if (connector->funcs->atomic_get_property) {
 		return connector->funcs->atomic_get_property(connector,
 				state, property, val);
