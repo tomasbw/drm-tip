@@ -1718,6 +1718,10 @@ static void intel_hdcp2_init(struct intel_connector *connector)
 		return;
 	}
 
+	ret = drm_connector_attach_cp_content_type_property(&connector->base);
+	if (ret)
+		return;
+
 	component_match_add(dev_priv->drm.dev, &dev_priv->master_match,
 			    i915_hdcp_component_match, dev_priv);
 	INIT_DELAYED_WORK(&hdcp->hdcp2_check_work, intel_hdcp2_check_work);
@@ -1774,8 +1778,12 @@ int intel_hdcp_enable(struct intel_connector *connector)
 					      DRM_HDCP2_CHECK_PERIOD_MS);
 	}
 
-	/* When HDCP2.2 fails, HDCP1.4 will be attempted */
-	if (ret && intel_hdcp_capable(connector)) {
+	/*
+	 * When HDCP2.2 fails and Content Type is not Type1, HDCP1.4 will
+	 * be attempted.
+	 */
+	if (ret && intel_hdcp_capable(connector) &&
+	    hdcp->content_type != DRM_MODE_CP_CONTENT_TYPE1) {
 		ret = _intel_hdcp_enable(connector);
 		if (!ret)
 			schedule_delayed_work(&hdcp->check_work,
@@ -1860,12 +1868,21 @@ void intel_hdcp_atomic_pre_commit(struct drm_connector *connector,
 	     old_cp != DRM_MODE_CONTENT_PROTECTION_UNDESIRED &&
 	     new_cp == DRM_MODE_CONTENT_PROTECTION_UNDESIRED))
 		intel_hdcp_disable(to_intel_connector(connector));
+
+	/* Disable HDCP if the content type is changed. */
+	if (new_state->crtc &&
+	    old_state->cp_content_type != new_state->cp_content_type &&
+	    old_cp != DRM_MODE_CONTENT_PROTECTION_UNDESIRED)
+		intel_hdcp_disable(to_intel_connector(connector));
 }
 
 void intel_hdcp_atomic_commit(struct drm_connector *connector,
 			      struct drm_connector_state *new_state)
 {
+	struct intel_connector *intel_connector = to_intel_connector(connector);
 	u64 new_cp = new_state->content_protection;
+
+	intel_connector->hdcp.content_type = (u8)new_state->cp_content_type;
 
 	/* Enable hdcp if it's desired */
 	if (new_state->crtc && new_cp == DRM_MODE_CONTENT_PROTECTION_DESIRED)
