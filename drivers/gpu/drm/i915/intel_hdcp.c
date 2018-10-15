@@ -695,6 +695,7 @@ static int intel_hdcp_auth(struct intel_connector *connector)
 		return -EPERM;
 	}
 
+	hdcp->downstream_info->ver_in_force = DRM_MODE_HDCP14_IN_FORCE;
 	memcpy(hdcp->downstream_info->bksv, bksv.shim, DRM_MODE_HDCP_KSV_LEN);
 
 	I915_WRITE(PORT_HDCP_BKSVLO(port), bksv.reg[0]);
@@ -1233,6 +1234,12 @@ static int hdcp2_authentication_key_exchange(struct intel_connector *connector)
 
 	hdcp->is_repeater = HDCP_2_2_RX_REPEATER(msgs.send_cert.rx_caps[2]);
 
+	hdcp->downstream_info->ver_in_force = DRM_MODE_HDCP22_IN_FORCE;
+	hdcp->downstream_info->content_type = hdcp->content_type;
+	memcpy(hdcp->downstream_info->bksv, msgs.send_cert.cert_rx.receiver_id,
+	       HDCP_2_2_RECEIVER_ID_LEN);
+	hdcp->downstream_info->is_repeater = hdcp->is_repeater;
+
 	/*
 	 * Here msgs.no_stored_km will hold msgs corresponding to the km
 	 * stored also.
@@ -1417,6 +1424,14 @@ int hdcp2_authenticate_repeater_topology(struct intel_connector *connector)
 		DRM_DEBUG_KMS("Seq_num_v roll over.\n");
 		return -EINVAL;
 	}
+
+	hdcp->downstream_info->device_count =
+				HDCP_2_2_DEV_COUNT_HI(rx_info[0]) << 4 ||
+				HDCP_2_2_DEV_COUNT_LO(rx_info[1]);
+	hdcp->downstream_info->depth = HDCP_2_2_DEPTH(rx_info[0]);
+
+	memcpy(hdcp->downstream_info->ksv_list, msgs.recvid_list.receiver_ids,
+	       hdcp->downstream_info->device_count * HDCP_2_2_RECEIVER_ID_LEN);
 
 	ret = hdcp2_verify_rep_topology_prepare_ack(connector,
 						    &msgs.recvid_list,
@@ -1619,6 +1634,12 @@ static int _intel_hdcp2_enable(struct intel_connector *connector)
 	if (ret) {
 		DRM_ERROR("HDCP2 Type%d  Enabling Failed. (%d)\n",
 			  hdcp->content_type, ret);
+
+		memset(hdcp->downstream_info, 0,
+		       sizeof(struct cp_downstream_info));
+		drm_mode_connector_update_cp_downstream_property(
+					&connector->base,
+					hdcp->downstream_info);
 		return ret;
 	}
 
@@ -1626,12 +1647,16 @@ static int _intel_hdcp2_enable(struct intel_connector *connector)
 		      connector->base.name, connector->base.base.id,
 		      hdcp->content_type);
 
+	drm_mode_connector_update_cp_downstream_property(
+					&connector->base,
+					hdcp->downstream_info);
 	hdcp->hdcp2_in_use = true;
 	return 0;
 }
 
 static int _intel_hdcp2_disable(struct intel_connector *connector)
 {
+	struct intel_hdcp *hdcp = &connector->hdcp;
 	int ret;
 
 	DRM_DEBUG_KMS("[%s:%d] HDCP2.2 is being Disabled\n",
@@ -1644,6 +1669,10 @@ static int _intel_hdcp2_disable(struct intel_connector *connector)
 
 	connector->hdcp.hdcp2_in_use = false;
 
+	memset(hdcp->downstream_info, 0, sizeof(struct cp_downstream_info));
+	drm_mode_connector_update_cp_downstream_property(
+					&connector->base,
+					hdcp->downstream_info);
 	return ret;
 }
 
