@@ -761,6 +761,8 @@ static int drm_atomic_connector_set_property(struct drm_connector *connector,
 
 		return set_out_fence_for_connector(state->state, connector,
 						   fence_ptr);
+	} else if (property == connector->cp_content_type_property) {
+		state->cp_content_type = val;
 	} else if (connector->funcs->atomic_set_property) {
 		return connector->funcs->atomic_set_property(connector,
 				state, property, val);
@@ -825,6 +827,8 @@ drm_atomic_connector_get_property(struct drm_connector *connector,
 		*val = 0;
 	} else if (property == config->writeback_out_fence_ptr_property) {
 		*val = 0;
+	} else if (property == connector->cp_content_type_property) {
+		*val = state->cp_content_type;
 	} else if (connector->funcs->atomic_get_property) {
 		return connector->funcs->atomic_get_property(connector,
 				state, property, val);
