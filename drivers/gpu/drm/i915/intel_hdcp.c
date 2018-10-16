@@ -83,7 +83,7 @@ int intel_hdcp_read_valid_bksv(struct intel_digital_port *intel_dig_port,
 }
 
 /* Is HDCP1.4 capable on Platform and Sink */
-static bool intel_hdcp_capable(struct intel_connector *connector)
+bool intel_hdcp_capable(struct intel_connector *connector)
 {
 	struct intel_digital_port *intel_dig_port = conn_to_dig_port(connector);
 	struct intel_hdcp *hdcp = &connector->hdcp;
@@ -102,7 +102,7 @@ static bool intel_hdcp_capable(struct intel_connector *connector)
 }
 
 /* Is HDCP2.2 capable on Platform and Sink */
-static bool intel_hdcp2_capable(struct intel_connector *connector)
+bool intel_hdcp2_capable(struct intel_connector *connector)
 {
 	struct intel_digital_port *intel_dig_port = conn_to_dig_port(connector);
 	struct intel_hdcp *hdcp = &connector->hdcp;

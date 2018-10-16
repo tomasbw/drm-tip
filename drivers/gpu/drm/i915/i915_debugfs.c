@@ -2210,6 +2210,41 @@ static const char *rps_power_to_str(unsigned int power)
 	return strings[power];
 }
 
+static int i915_sinks_hdcp_capabilities(struct seq_file *m, void *unused)
+{
+	struct drm_i915_private *dev_priv = node_to_i915(m->private);
+	struct drm_device *dev = &dev_priv->drm;
+	struct intel_connector *connector;
+	struct drm_connector_list_iter conn_iter;
+	bool is_hdcp14, is_hdcp22;
+
+	drm_connector_list_iter_begin(dev, &conn_iter);
+	for_each_intel_connector_iter(connector, &conn_iter) {
+		if (connector->base.status != connector_status_connected)
+			continue;
+
+		/* HDCP is supported by connector */
+		if (!connector->hdcp.shim)
+			continue;
+
+		/* Detect sink's HDCP1.4 capability */
+		is_hdcp14 = intel_hdcp_capable(connector);
+
+		/* Detect sink's HDCP2.2 capability */
+		is_hdcp22 = intel_hdcp2_capable(connector);
+
+		seq_printf(m, "%s:%d HDCP version: ", connector->base.name,
+			   connector->base.base.id);
+		seq_printf(m, "%s", !is_hdcp14 && !is_hdcp22 ? "None" : "");
+		seq_printf(m, "%s ", is_hdcp14 ? "HDCP1.4" : "");
+		seq_printf(m, "%s ", is_hdcp22 ? "HDCP2.2" : "");
+		seq_printf(m, "\n");
+	}
+	drm_connector_list_iter_end(&conn_iter);
+
+	return 0;
+}
+
 static int i915_rps_boost_info(struct seq_file *m, void *data)
 {
 	struct drm_i915_private *dev_priv = node_to_i915(m->private);
@@ -4805,6 +4840,7 @@ static const struct drm_info_list i915_debugfs_list[] = {
 	{"i915_sseu_status", i915_sseu_status, 0},
 	{"i915_drrs_status", i915_drrs_status, 0},
 	{"i915_rps_boost_info", i915_rps_boost_info, 0},
+	{"i915_sinks_hdcp_capabilities", i915_sinks_hdcp_capabilities, 0},
 };
 #define I915_DEBUGFS_ENTRIES ARRAY_SIZE(i915_debugfs_list)
 

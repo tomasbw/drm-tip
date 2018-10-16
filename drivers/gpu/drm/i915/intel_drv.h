@@ -2023,6 +2023,8 @@ int intel_hdcp_component_init(struct drm_i915_private *dev_priv);
 bool is_hdcp2_supported(struct drm_i915_private *dev_priv);
 void intel_hdcp_handle_cp_irq(struct intel_connector *connector);
 bool is_hdcp2_supported(struct drm_i915_private *dev_priv);
+bool intel_hdcp_capable(struct intel_connector *connector);
+bool intel_hdcp2_capable(struct intel_connector *connector);
 
 /* intel_psr.c */
 #define CAN_PSR(dev_priv) (HAS_PSR(dev_priv) && dev_priv->psr.sink_support)
