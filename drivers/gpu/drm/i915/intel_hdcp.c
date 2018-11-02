@@ -171,13 +171,17 @@ static bool hdcp_key_loadable(struct drm_i915_private *dev_priv)
 	else
 		id = SKL_DISP_PW_1;
 
+	DRM_DEBUG_KMS("powerwell id : %d\n", id);
 	mutex_lock(&power_domains->lock);
 
 	/* PG1 (power well #1) needs to be enabled */
 	for_each_power_well(dev_priv, power_well) {
+		DRM_DEBUG_KMS("Checking powerwell id : %d\n", power_well->desc->id);
 		if (power_well->desc->id == id) {
 			enabled = power_well->desc->ops->is_enabled(dev_priv,
 								    power_well);
+			DRM_DEBUG_KMS("powerwell id %d %sabled\n",
+				      id, enabled ? "En" : "Dis");
 			break;
 		}
 	}
@@ -752,6 +756,11 @@ static int _intel_hdcp_enable(struct intel_connector *connector)
 
 	DRM_DEBUG_KMS("[%s:%d] HDCP is being enabled...\n",
 		      connector->base.name, connector->base.base.id);
+
+	DRM_DEBUG_KMS("kbl: %s, skl: %s, apl: %s\n",
+		      IS_KABYLAKE(dev_priv) ? "Yes" : "No",
+		      IS_SKYLAKE(dev_priv) ? "Yes" : "No",
+		      IS_BROXTON(dev_priv) ? "Yes" : "No");
 
 	if (!hdcp_key_loadable(dev_priv)) {
 		DRM_ERROR("HDCP key Load is not possible\n");
