@@ -24,10 +24,10 @@
 #ifndef _I915_COMPONENT_H_
 #define _I915_COMPONENT_H_
 
+#include <linux/mutex.h>
+
 #include "drm_audio_component.h"
 
-#include <linux/mei_cl_bus.h>
-#include <linux/mei_hdcp.h>
 #include <drm/drm_hdcp.h>
 
 /* MAX_PORT is the number of port
@@ -56,46 +56,46 @@ struct i915_hdcp_component_ops {
 	 */
 	struct module *owner;
 
-	int (*initiate_hdcp2_session)(struct mei_cl_device *cldev,
-				      struct mei_hdcp_data *data,
+	int (*initiate_hdcp2_session)(struct device *dev,
+				      void *hdcp_data,
 				      struct hdcp2_ake_init *ake_data);
-	int (*verify_receiver_cert_prepare_km)(struct mei_cl_device *cldev,
-					       struct mei_hdcp_data *data,
+	int (*verify_receiver_cert_prepare_km)(struct device *dev,
+					       void *hdcp_data,
 					       struct hdcp2_ake_send_cert
 								*rx_cert,
 					       bool *km_stored,
 					       struct hdcp2_ake_no_stored_km
 								*ek_pub_km,
 					       size_t *msg_sz);
-	int (*verify_hprime)(struct mei_cl_device *cldev,
-			     struct mei_hdcp_data *data,
+	int (*verify_hprime)(struct device *dev,
+			     void *hdcp_data,
 			     struct hdcp2_ake_send_hprime *rx_hprime);
-	int (*store_pairing_info)(struct mei_cl_device *cldev,
-				  struct mei_hdcp_data *data,
+	int (*store_pairing_info)(struct device *dev,
+				  void *hdcp_data,
 				  struct hdcp2_ake_send_pairing_info
 								*pairing_info);
-	int (*initiate_locality_check)(struct mei_cl_device *cldev,
-				       struct mei_hdcp_data *data,
+	int (*initiate_locality_check)(struct device *dev,
+				       void *hdcp_data,
 				       struct hdcp2_lc_init *lc_init_data);
-	int (*verify_lprime)(struct mei_cl_device *cldev,
-			     struct mei_hdcp_data *data,
+	int (*verify_lprime)(struct device *dev,
+			     void *hdcp_data,
 			     struct hdcp2_lc_send_lprime *rx_lprime);
-	int (*get_session_key)(struct mei_cl_device *cldev,
-			       struct mei_hdcp_data *data,
+	int (*get_session_key)(struct device *dev,
+			       void *hdcp_data,
 			       struct hdcp2_ske_send_eks *ske_data);
-	int (*repeater_check_flow_prepare_ack)(struct mei_cl_device *cldev,
-					       struct mei_hdcp_data *data,
+	int (*repeater_check_flow_prepare_ack)(struct device *dev,
+					       void *hdcp_data,
 					       struct hdcp2_rep_send_receiverid_list
 								*rep_topology,
 					       struct hdcp2_rep_send_ack
 								*rep_send_ack);
-	int (*verify_mprime)(struct mei_cl_device *cldev,
-			     struct mei_hdcp_data *data,
+	int (*verify_mprime)(struct device *dev,
+			     void *hdcp_data,
 			     struct hdcp2_rep_stream_ready *stream_ready);
-	int (*enable_hdcp_authentication)(struct mei_cl_device *cldev,
-					  struct mei_hdcp_data *data);
-	int (*close_hdcp_session)(struct mei_cl_device *cldev,
-				  struct mei_hdcp_data *data);
+	int (*enable_hdcp_authentication)(struct device *dev,
+					  void *hdcp_data);
+	int (*close_hdcp_session)(struct device *dev,
+				  void *hdcp_data);
 };
 
 /**
@@ -104,9 +104,9 @@ struct i915_hdcp_component_ops {
  */
 struct i915_hdcp_component_master {
 	/**
-	 * @mei_cldev: mei client device, used as parameter for ops
+	 * @dev: a device providing hdcp
 	 */
-	struct mei_cl_device *mei_cldev;
+	struct device *dev;
 	/**
 	 * @mutex: Mutex to protect the state of mei_cldev
 	 */
