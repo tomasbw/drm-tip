@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2021, Intel Corporation. All rights reserved.
+#
+config DRM_I915_SPI
+	tristate "I915 SPI driver for discrete devices"
+	select MTD
+	select MTD_PARTITIONED_MASTER
+	depends on DRM_I915
+	help
+	  I915 SPI driver for i915 discrete devices.
+
+	  This enables support for the SPI devices present on some
+	  discrete i915 cards. This driver makes possible to
+	  flush firmware during manufacturing process directly from
+	  the operating system, and can be used by device health check
+	  applications.
+

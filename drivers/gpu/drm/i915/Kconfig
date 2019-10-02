@@ -131,6 +131,8 @@ config DRM_I915_GVT_KVMGT
 	  Choose this option if you want to enable KVMGT support for
 	  Intel GVT-g.
 
+source "drivers/gpu/drm/i915/spi/Kconfig"
+
 menu "drm/i915 Debugging"
 depends on DRM_I915
 depends on EXPERT
