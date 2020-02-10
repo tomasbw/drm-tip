@@ -14,11 +14,20 @@ static const struct resource spi_resources[] = {
 	DEFINE_RES_MEM_NAMED(GEN12_GUNIT_SPI_BASE, 0x80, "i915-spi-mmio"),
 };
 
+static const struct i915_spi_region regions[I915_SPI_REGIONS] = {
+	[0] = { .name = "DESCRIPTOR", },
+	[2] = { .name = "GSC", },
+	[11] = { .name = "OptionROM", },
+	[12] = { .name = "DAM", },
+};
+
 static const struct mfd_cell intel_spi_cell = {
 	.id = 2,
 	.name = "i915-spi",
 	.num_resources = ARRAY_SIZE(spi_resources),
 	.resources = spi_resources,
+	.platform_data = (void *)regions,
+	.pdata_size    = sizeof(regions),
 };
 
 void intel_spi_init(struct intel_spi *spi, struct drm_i915_private *dev_priv)
