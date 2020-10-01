@@ -20,6 +20,7 @@
 
 struct i915_spi {
 	struct mtd_info mtd;
+	struct mutex lock; /* region access lock */
 	void __iomem *base;
 	size_t size;
 	unsigned int nregions;
@@ -354,6 +355,7 @@ static int i915_spi_erase(struct mtd_info *mtd, struct erase_info *info)
 	loff_t from;
 	size_t len;
 	size_t total_len;
+	int ret = 0;
 
 	if (!mtd || !info)
 		return -EINVAL;
@@ -370,18 +372,23 @@ static int i915_spi_erase(struct mtd_info *mtd, struct erase_info *info)
 	total_len = info->len;
 	addr = info->addr;
 
+	if (!mutex_trylock(&spi->lock))
+		return -EBUSY;
+
 	while (total_len > 0) {
 		if (!IS_ALIGNED(addr, SZ_4K) || !IS_ALIGNED(total_len, SZ_4K)) {
 			dev_err(&mtd->dev, "unaligned erase %llx %zx\n", addr, total_len);
 			info->fail_addr = addr;
-			return -ERANGE;
+			ret = -ERANGE;
+			goto out;
 		}
 
 		idx = spi_get_region(spi, addr);
 		if (idx >= spi->nregions) {
 			dev_err(&mtd->dev, "out of range");
 			info->fail_addr = MTD_FAIL_ADDR_UNKNOWN;
-			return -ERANGE;
+			ret = -ERANGE;
+			goto out;
 		}
 
 		from = addr - spi->regions[idx].offset;
@@ -397,14 +404,17 @@ static int i915_spi_erase(struct mtd_info *mtd, struct erase_info *info)
 		if (bytes < 0) {
 			dev_dbg(&mtd->dev, "erase failed with %zd\n", bytes);
 			info->fail_addr += spi->regions[idx].offset;
-			return bytes;
+			ret = bytes;
+			goto out;
 		}
 
 		addr += len;
 		total_len -= len;
 	}
 
-	return 0;
+out:
+	mutex_unlock(&spi->lock);
+	return ret;
 }
 
 static int i915_spi_read(struct mtd_info *mtd, loff_t from, size_t len,
@@ -440,14 +450,19 @@ static int i915_spi_read(struct mtd_info *mtd, loff_t from, size_t len,
 	if (len > spi->regions[idx].size - from)
 		len = spi->regions[idx].size - from;
 
+	if (!mutex_trylock(&spi->lock))
+		return -EBUSY;
+
 	ret = spi_read(spi, region, from, len, buf);
 	if (ret < 0) {
 		dev_dbg(&mtd->dev, "read failed with %zd\n", ret);
+		mutex_unlock(&spi->lock);
 		return ret;
 	}
 
 	*retlen = ret;
 
+	mutex_unlock(&spi->lock);
 	return 0;
 }
 
@@ -484,14 +499,19 @@ static int i915_spi_write(struct mtd_info *mtd, loff_t to, size_t len,
 	if (len > spi->regions[idx].size - to)
 		len = spi->regions[idx].size - to;
 
+	if (!mutex_trylock(&spi->lock))
+		return -EBUSY;
+
 	ret = spi_write(spi, region, to, len, buf);
 	if (ret < 0) {
 		dev_dbg(&mtd->dev, "write failed with %zd\n", ret);
+		mutex_unlock(&spi->lock);
 		return ret;
 	}
 
 	*retlen = ret;
 
+	mutex_unlock(&spi->lock);
 	return 0;
 }
 
@@ -504,6 +524,8 @@ static int i915_spi_init_mtd(struct i915_spi *spi, struct device *device,
 	int ret;
 
 	dev_dbg(device, "registering with mtd\n");
+
+	mutex_init(&spi->lock);
 
 	spi->mtd.owner = THIS_MODULE;
 	spi->mtd.dev.parent = device;
@@ -629,6 +651,8 @@ static int i915_spi_remove(struct platform_device *platdev)
 		return 0;
 
 	mtd_device_unregister(&spi->mtd);
+
+	mutex_destroy(&spi->lock);
 
 	platform_set_drvdata(platdev, NULL);
 
