@@ -85,6 +85,8 @@
 #include "gt/intel_workarounds.h"
 #include "gt/uc/intel_uc.h"
 
+#include "spi/intel_spi.h"
+
 #include "intel_device_info.h"
 #include "intel_pch.h"
 #include "intel_runtime_pm.h"
@@ -1114,6 +1116,8 @@ struct drm_i915_private {
 	struct intel_runtime_pm runtime_pm;
 
 	struct i915_perf perf;
+
+	struct intel_spi spi;
 
 	/* Abstract the submission mechanism (legacy ringbuffer or execlists) away */
 	struct intel_gt gt;

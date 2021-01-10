@@ -38,6 +38,7 @@
 #include <linux/slab.h>
 #include <linux/vga_switcheroo.h>
 #include <linux/vt.h>
+#include <linux/mfd/core.h>
 
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_ioctl.h>
@@ -65,6 +66,8 @@
 #include "gt/intel_gt.h"
 #include "gt/intel_gt_pm.h"
 #include "gt/intel_rc6.h"
+
+#include "spi/intel_spi.h"
 
 #include "i915_debugfs.h"
 #include "i915_drv.h"
@@ -674,6 +677,8 @@ static void i915_driver_register(struct drm_i915_private *dev_priv)
 
 	intel_gt_driver_register(&dev_priv->gt);
 
+	intel_spi_init(&dev_priv->spi, dev_priv);
+
 	intel_display_driver_register(dev_priv);
 
 	intel_power_domains_enable(dev_priv);
@@ -699,6 +704,8 @@ static void i915_driver_unregister(struct drm_i915_private *dev_priv)
 	intel_power_domains_disable(dev_priv);
 
 	intel_display_driver_unregister(dev_priv);
+
+	mfd_remove_devices(&dev_priv->drm.pdev->dev);
 
 	intel_gt_driver_unregister(&dev_priv->gt);
 
