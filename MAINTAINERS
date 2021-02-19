@@ -8963,6 +8963,17 @@ L:	platform-driver-x86@vger.kernel.org
 S:	Maintained
 F:	drivers/platform/x86/intel-hid.c
 
+INTEL I915 SPI DRIVER
+M:	Tomas Winkler <tomas.winkler@intel.com>
+L:	intel-gfx@lists.freedesktop.org
+S:	Supported
+W:	https://01.org/linuxgraphics/
+Q:	http://patchwork.freedesktop.org/project/intel-gfx/
+B:	https://gitlab.freedesktop.org/drm/intel/-/wikis/How-to-file-i915-bugs
+C:	irc://chat.freenode.net/intel-gfx
+T:	git git://anongit.freedesktop.org/drm-intel
+F:	drivers/gpu/drm/i915/spi/*
+
 INTEL I/OAT DMA DRIVER
 M:	Dave Jiang <dave.jiang@intel.com>
 R:	Dan Williams <dan.j.williams@intel.com>
